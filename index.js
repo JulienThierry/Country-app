@@ -2,52 +2,64 @@ const countriesList = document.getElementById("countries-list");
 const inputSearch = document.getElementById("inputSearch");
 const inputRange = document.getElementById("inputRange");
 const rangeValue = document.getElementById("rangeValue");
+const btnSort = document.querySelectorAll(".btnSort");
 let countries = [];
-let arrayLength;
-let input;
+let sortMethod = "alpha";
 
-inputSearch.addEventListener("input", (e) => {
-  if (e.target.value) {
-    input = e.target.value;
-    fetchData(e.target.value);
-  } else fetchData();
+const displayData = () => {
+  countriesList.innerHTML = countries
+    .filter((country) =>
+      country.translations.fra.common
+        .toLowerCase()
+        .includes(inputSearch.value.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortMethod === "maxToMin") {
+        return b.population - a.population;
+      } else if (sortMethod === "minToMax") {
+        return a.population - b.population;
+      } else if (sortMethod === "alpha") {
+        return a.translations.fra.common.localeCompare(
+          b.translations.fra.common
+        );
+      }
+    })
+    .slice(0, inputRange.value)
+    .map(
+      (country) =>
+        `
+      <ul>
+          <img src=${country.flags.svg} alt =" drapeau ${
+          country.translations.fra.common
+        }"/>
+          <li>${country.translations.fra.common}</li>
+          <li>${country.capital}</li>
+          <li>Population : ${country.population.toLocaleString()}</li>
+        </ul>
+          `
+    );
+};
+
+const fetchData = async () => {
+  await fetch("https://restcountries.com/v3.1/all")
+    .then((res) => res.json())
+    .then((data) => (countries = data));
+};
+
+inputSearch.addEventListener("input", () => {
+  displayData();
 });
 
 inputRange.addEventListener("input", (e) => {
   rangeValue.textContent = e.target.value;
-  arrayLength = e.target.value;
-  fetchData(input);
+  displayData();
 });
 
-const displayData = () => {
-  countriesList.innerHTML = "";
-  countries.map(
-    (country) =>
-      (countriesList.innerHTML += `
-      <ul>
-          <img src=${country.flags.png} />
-          <li>${country.name.official}</li>
-          <li>${country.capital}</li>
-          <li>Population : ${country.population}</li>
+window.addEventListener("load", fetchData());
 
-        </ul>
-          `)
-  );
-};
-
-const fetchData = async (search) => {
-  if (search !== undefined) {
-    await fetch("https://restcountries.com/v3.1/name/" + search)
-      .then((res) => res.json())
-      .then((data) => (countries = data));
-  } else {
-    await fetch("https://restcountries.com/v3.1/all")
-      .then((res) => res.json())
-      .then((data) => (countries = data));
-  }
-  if (arrayLength !== undefined) {
-    countries.length = arrayLength;
-  }
-  displayData();
-  console.log(countries);
-};
+btnSort.forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    sortMethod = e.target.id;
+    displayData();
+  });
+});
